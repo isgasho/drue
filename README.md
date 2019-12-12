@@ -1,4 +1,4 @@
-# Drumosphere
+# Drue
 
 This is a tool to adjust hue lights based on drumming speed and BPM form an
 electric drumkit connected through MIDI.
