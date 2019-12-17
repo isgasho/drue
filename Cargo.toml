@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 midir = "*"
 clap = "*"
+huemanity = "0.1.2"
+dotenv = "*"
+serde_json = "*"
