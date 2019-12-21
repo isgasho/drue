@@ -6,6 +6,7 @@ mod algorithms;
 mod cli;
 mod midi;
 mod state;
+mod utils;
 
 use algorithms::*;
 use dotenv;
@@ -27,10 +28,10 @@ fn main() {
     // TODO: use this
     let matches = cli::create_app().get_matches();
 
-    run(bridge);
+    run(bridge, Blink);
 }
 
-fn run(bridge: huemanity::Bridge) -> Result<(), Box<dyn Error>> {
+fn run(bridge: huemanity::Bridge, callback: impl Callback) -> Result<(), Box<dyn Error>> {
     // TODO: Take in a function here and use that as a callback
     // acquire an input
     let (in_port, midi_in) = acquire_midi_input().unwrap();
@@ -47,7 +48,7 @@ fn run(bridge: huemanity::Bridge) -> Result<(), Box<dyn Error>> {
         in_port,
         "Connection from Rust",
         move |stamp, message, data| {
-            callback(stamp, message, data, &bridge);
+            callback.execute(stamp, message, data, &bridge);
         },
         state,
     )?;
