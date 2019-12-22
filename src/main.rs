@@ -13,6 +13,7 @@ use dotenv;
 use huemanity::Bridge;
 use midi::*;
 use state::*;
+use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 // use std::thread::sleep;
@@ -28,7 +29,20 @@ fn main() {
     // TODO: use this
     let matches = cli::create_app().get_matches();
 
-    run(bridge, Blink);
+    // Set up the algorithm
+    let mut tiers = BTreeMap::new();
+    tiers.insert(300, [0.1585, 0.0884]); // midnight blue
+    tiers.insert(600, [0.6531, 0.2834]); // redish
+
+    let tiered = TieredColorSwap {
+        base_color: [0.3174, 0.3207],
+        tiers: tiers,
+        measurement_seconds: 0.7,
+        transition_milliseconds: 1,
+    };
+
+    // TODO: Move this to the callback implementation for the trait
+    run(bridge, tiered);
 }
 
 fn run(bridge: huemanity::Bridge, callback: impl Callback) -> Result<(), Box<dyn Error>> {
@@ -42,6 +56,9 @@ fn run(bridge: huemanity::Bridge, callback: impl Callback) -> Result<(), Box<dyn
         start_timestamp: 0,
         last_hpm: 0,
     };
+
+    // do the setup for the algorithm
+    callback.setup(&bridge);
 
     // connect
     let conn_in = midi_in.connect(
@@ -62,3 +79,5 @@ fn run(bridge: huemanity::Bridge, callback: impl Callback) -> Result<(), Box<dyn
 
     Ok(())
 }
+
+// TODO: account for gammut?
