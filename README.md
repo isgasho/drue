@@ -3,7 +3,7 @@
 ## Polite notice
 
 This tool is in heavy development and it is in a state where it works for me
-¯\_(ツ)\_/¯. I will update this as it goes along, but I would really appreciate
+`¯\_(ツ)\_/¯`. I will update this as it goes along, but I would really appreciate
 pull requests and issues posted.
 
 # What is it?
