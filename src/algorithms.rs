@@ -1,8 +1,7 @@
+use crate::midi::*;
 use crate::state::*;
-use crate::utils::*;
 use serde_json::json;
 use std::collections::BTreeMap;
-use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -30,14 +29,14 @@ impl Callback for TieredColorSwap {
         // TODO: Abstract this into the callback trait as an associated function
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
-        // check how many seconds have passed
+        // check if enough time has passed
         let time_passed: bool = state.time_since_last(stamp) > self.measurement_seconds as f64;
 
         match (hit, time_passed) {
             (_, true) => {
                 // main algorithm
                 // TODO: implement common computations on the state itself
-                let hpm = ((state.hits * 60) as f32 / self.measurement_seconds) as usize;
+                let hpm = state.calculate_hpm(self.measurement_seconds);
 
                 let mut color = self.base_color;
                 for (threshold, _color) in self.tiers.iter() {
@@ -50,9 +49,8 @@ impl Callback for TieredColorSwap {
                     &json!({"bri":254, "xy":color, "transitiontime":self.transition_milliseconds}),
                 );
 
-                state.hits = 0;
-                state.start_timestamp = stamp;
-                println!("{} -> {:?}", hpm, color);
+                state.reset(stamp);
+                println!("HPM: {} -> {:?}", hpm, color);
             }
             (true, _) => {
                 state.hits += 1;
@@ -82,16 +80,16 @@ impl Callback for SimpleColorSwap {
     fn execute(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &huemanity::Bridge) {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
-        // check how many seconds have passed
+        // check if enough time has passed
         let time_passed: bool = state.time_since_last(stamp) > self.measurement_seconds as f64;
 
         match (hit, time_passed) {
             (_, true) => {
                 // main algorithm
                 // TODO: implement common computations on the state itself
-                let hpm = state.hits * 60 / self.measurement_seconds as usize;
+                let hpm = state.calculate_hpm(self.measurement_seconds);
                 let thresh_reached = hpm >= self.hpm_threshold as usize;
-                let color = match thresh_reached {
+                match thresh_reached {
                     true => {
                         bridge.state_all(&json!({"bri":254, "xy":self.fast, "transitiontime":self.transition_milliseconds}));
                     }
@@ -100,9 +98,8 @@ impl Callback for SimpleColorSwap {
                             .state_all(&json!({"bri":254, "xy":self.normal, "transitiontime":self.transition_milliseconds}));
                     }
                 };
-                state.hits = 0;
-                state.start_timestamp = stamp;
-                println!("{} -> {:?}", hpm, thresh_reached);
+                state.reset(stamp);
+                println!("HPM: {} -> {:?}", hpm, thresh_reached);
             }
             (true, _) => {
                 state.hits += 1;
@@ -129,4 +126,35 @@ impl Callback for Blink {
 pub trait Callback: std::marker::Send + 'static {
     fn setup(&self, bridge: &huemanity::Bridge) {}
     fn execute(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &huemanity::Bridge);
+}
+
+pub fn run(bridge: huemanity::Bridge, callback: impl Callback) {
+    // TODO: Take in a function here and use that as a callback
+    // acquire an input
+    let (in_port, midi_in) = acquire_midi_input().unwrap();
+
+    // create a state
+    let mut state = State {
+        hits: 0,
+        start_timestamp: 0,
+        last_hpm: 0,
+    };
+
+    // do the setup for the algorithm
+    callback.setup(&bridge);
+
+    // connect
+    let conn_in = midi_in
+        .connect(
+            in_port,
+            "Connection from Rust",
+            move |stamp, message, data| {
+                callback.execute(stamp, message, data, &bridge);
+            },
+            state,
+        )
+        .unwrap();
+
+    // main loop
+    loop {}
 }
