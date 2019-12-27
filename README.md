@@ -42,7 +42,7 @@ Currently implemented behaviour:
 - Potential settings for individual songs stored and cached in a database like
   storage
 
-etc.
+For more see the [IDEAS](IDEAS.org) file.
 
 ## Issues
 

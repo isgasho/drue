@@ -5,6 +5,7 @@ pub struct State {
     pub hits: usize,
     pub start_timestamp: u64,
     pub last_hpm: u64,
+    pub hit_tracker: Vec<u8>,
 }
 
 impl State {
@@ -21,6 +22,7 @@ impl State {
     pub fn reset(&mut self, new_stamp: u64) {
         self.hits = 0;
         self.start_timestamp = new_stamp;
+        self.hit_tracker = Vec::new();
     }
 }
 

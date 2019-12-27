@@ -3,13 +3,11 @@ name = "drumosphere"
 version = "0.1.0"
 authors = ["Finnkauski <iwiivi@gmail.com>"]
 edition = "2018"
-description="Control your hue lights as you drum some sick beats!"
-license="AGPL-3.0-or-later"
-homepage="https://github.com/finnkauski/drue"
-documentation="https://github.com/finnkauski/drue"
-repository="https://github.com/finnkauski/drue"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# description="Control your hue lights as you drum some sick beats!"
+# license="AGPL-3.0-or-later"
+# homepage="https://github.com/finnkauski/drue"
+# documentation="https://github.com/finnkauski/drue"
+# repository="https://github.com/finnkauski/drue"
 
 [dependencies]
 midir = "*"
