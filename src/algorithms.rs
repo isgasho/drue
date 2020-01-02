@@ -30,14 +30,11 @@ impl Callback for VarietyThreshold {
                 // main algorithm
                 let variety = state.hit_tracker.len();
                 let thresh_reached = variety >= self.variety_threshold as usize;
-                match thresh_reached {
-                    true => {
-                        bridge.state_all(&json!({"bri":254, "xy":self.above, "transitiontime":self.transition_milliseconds}));
-                    }
-                    false => {
-                        bridge
+                if thresh_reached {
+                    bridge.state_all(&json!({"bri":254, "xy":self.above, "transitiontime":self.transition_milliseconds}));
+                } else {
+                    bridge
                             .state_all(&json!({"bri":254, "xy":self.below, "transitiontime":self.transition_milliseconds}));
-                    }
                 };
                 state.reset(stamp);
                 println!("Variety: {} -> {:?}", variety, thresh_reached);
