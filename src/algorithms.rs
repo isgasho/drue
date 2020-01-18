@@ -208,13 +208,3 @@ pub trait Callback: std::marker::Send + 'static {
     }
     fn execute(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge);
 }
-
-pub struct AlgoFactory<'a> {
-    bridge: &'a Bridge,
-}
-
-impl AlgoFactory<'_> {
-    fn get_dummy_print() -> impl Fn(u64, &[u8]) -> () {
-        return |a: u64, b: &[u8]| println!();
-    }
-}
