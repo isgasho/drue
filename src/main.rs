@@ -53,6 +53,22 @@ fn main() {
         Some("variety") => run(bridge, variety),
         Some("debug") => run(bridge, DummyPrint),
         Some("hpm") => run(bridge, tiered),
+        Some("blinkmap") => {
+            if let Some(pad) = matches.value_of("PAD") {
+                let n: u8 = pad.parse::<u8>().unwrap();
+                run(
+                    bridge,
+                    SpecialisedBlink {
+                        duration: 1,
+                        midi_notes: vec![n],
+                    },
+                )
+            } else {
+                println!(
+                    "Mapping pad not provided. Use `-o` to provide which pad to trigger blink on."
+                )
+            }
+        }
         None => {
             println!("Incorrect method passed!");
         }
@@ -65,7 +81,8 @@ pub fn create_app() -> clap::App<'static, 'static> {
                             (version: "0.1")
                             (author: "Art Eidukas <iwiivi@gmail.com>")
                             (about: "This app allows drum input to fire hue light commands.")
-                            (@arg METHOD: -m --method +takes_value "Set which method to activate (blink|variety|hpm|debug)")
+                            (@arg METHOD: -m --method +takes_value "Set which method to activate (blink|blinkmap|variety|hpm|debug)")
+                            (@arg PAD: -p --pad +takes_value "Set which pad gets mapped to spetialised blinking. Only works with `blinkmap`")
     );
     app
 }
