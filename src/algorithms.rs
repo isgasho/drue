@@ -103,6 +103,14 @@ impl Callback for TieredThreshold {
     }
 }
 
+pub struct Threshold {
+    pub below: [f32; 2],
+    pub above: [f32; 2],
+    pub hpm_threshold: usize,
+    pub measurement_seconds: f32,
+    pub transition_milliseconds: u8,
+}
+
 impl Callback for Threshold {
     fn setup(&self, bridge: &Bridge) {
         // set up starting light state
@@ -201,96 +209,12 @@ pub trait Callback: std::marker::Send + 'static {
     fn execute(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge);
 }
 
-pub struct AlgoFactory {
-    pub bridge: Bridge,
+pub struct AlgoFactory<'a> {
+    bridge: &'a Bridge,
 }
 
-// TODO: set it up so the returned closures are composible
-impl<'a> AlgoFactory {
-    pub fn get_debug(self) -> impl Fn(u64, &[u8], &mut State) -> () {
-        return |_stamp: u64, msg: &[u8], _state: &mut State| println!("{:?}", msg);
+impl AlgoFactory<'_> {
+    fn get_dummy_print() -> impl Fn(u64, &[u8]) -> () {
+        return |a: u64, b: &[u8]| println!();
     }
-    pub fn get_spec_blink(
-        self,
-        duration: u8,
-        midi_notes: Vec<u8>,
-    ) -> impl Fn(u64, &[u8], &mut State) -> () {
-        return move |_stamp: u64, msg: &[u8], _state: &mut State| {
-            if msg.len() == 3 {
-                let hit: bool = (msg.get(2) != Some(&0)) & midi_notes.contains(&msg[1]);
-                if hit {
-                    self.bridge
-                        .state_all(&json!({"on":false, "bri":254, "transitiontime":duration}));
-                    sleep(Duration::from_millis(10));
-                    self.bridge
-                        .state_all(&json!({"on":true, "bri":254, "transitiontime":duration}));
-                }
-            }
-        };
-    }
-
-    pub fn get_blink(self, duration: u8) -> impl Fn(u64, &[u8], &mut State) -> () {
-        return move |_stamp: u64, msg: &[u8], _state: &mut State| {
-            let hit: bool = (msg.len() == 3) & (msg.get(2) != Some(&0));
-            if hit {
-                self.bridge
-                    .state_all(&json!({"on":false, "bri":254, "transitiontime":duration}));
-                sleep(Duration::from_millis(10));
-                self.bridge
-                    .state_all(&json!({"on":true, "bri":254, "transitiontime":duration}));
-            }
-        };
-    }
-
-    pub fn threshold(
-        &self,
-        below: [f32; 2],
-        above: [f32; 2],
-        hpm_threshold: usize,
-        secs: f32,
-        transition: u8,
-    ) -> impl Fn(u64, &[u8], &mut State) -> () {
-        return move |stamp: u64, msg: &[u8], state: &mut State| {
-            let hit: bool = (msg.len() == 3) & (msg.get(2) != Some(&0));
-
-            // check if enough time has passed
-            let time_passed: bool = state.time_since_last(stamp) > secs as f64;
-
-            match (hit, time_passed) {
-                (_, true) => {
-                    // main algorithm
-                    // TODO: implement common computations on the state itself
-                    let hpm = state.calculate_hpm(secs);
-                    let thresh_reached = hpm >= hpm_threshold as usize;
-                    match thresh_reached {
-                        true => {
-                            self.bridge.state_all(
-                                &json!({"bri":254, "xy":above, "transitiontime":transition}),
-                            );
-                        }
-                        false => {
-                            self.bridge.state_all(
-                                &json!({"bri":254, "xy":below, "transitiontime":transition}),
-                            );
-                        }
-                    };
-                    state.reset(stamp);
-                    println!("HPM: {} -> {:?}", hpm, thresh_reached);
-                }
-                (true, _) => {
-                    state.hits += 1;
-                }
-
-                (_, _) => (),
-            }
-        };
-    }
-}
-
-pub struct Threshold {
-    pub below: [f32; 2],
-    pub above: [f32; 2],
-    pub hpm_threshold: usize,
-    pub measurement_seconds: f32,
-    pub transition_milliseconds: u8,
 }

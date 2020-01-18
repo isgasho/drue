@@ -48,8 +48,6 @@ fn main() {
 
     let blink = Blink { duration: 1 };
 
-    // let algo: AlgoFactory = AlgoFactory { bridge: bridge };
-
     match matches.value_of("METHOD") {
         Some("blink") => run(bridge, blink),
         Some("variety") => run(bridge, variety),
@@ -57,12 +55,12 @@ fn main() {
         Some("hpm") => run(bridge, tiered),
         Some("blinkmap") => {
             if let Some(pad) = matches.value_of("PAD") {
-                let ipad: u8 = pad.parse().unwrap();
+                let n: u8 = pad.parse::<u8>().unwrap();
                 run(
                     bridge,
                     SpecialisedBlink {
                         duration: 1,
-                        midi_notes: vec![ipad],
+                        midi_notes: vec![n],
                     },
                 )
             } else {
@@ -71,7 +69,6 @@ fn main() {
                 )
             }
         }
-        // Some("test") => run_test(algo),
         None => {
             println!("Incorrect method passed!");
         }
