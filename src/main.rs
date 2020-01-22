@@ -1,3 +1,5 @@
+#![feature(type_alias_impl_trait)]
+
 #[macro_use]
 extern crate clap;
 extern crate midir;
@@ -49,6 +51,7 @@ fn main() {
     let blink = Blink { duration: 1 };
 
     match matches.value_of("METHOD") {
+        Some("dd") => run_fn(bridge),
         Some("blink") => run(bridge, blink),
         Some("variety") => run(bridge, variety),
         Some("debug") => run(bridge, DummyPrint),
