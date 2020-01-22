@@ -18,44 +18,26 @@ use std::env;
 use std::error::Error;
 use std::io::{stdin, stdout, Write};
 
+// TODO: Implement default algorithms
 fn main() {
+    // Get all the preliminary set up out of the way.
     dotenv::dotenv().ok();
     let ip = env::var("HUE_IP").unwrap();
     let key = env::var("HUE_KEY").unwrap();
-
     let bridge = Bridge::link(ip, key);
-
     let matches = create_app().get_matches();
 
     // // Set up the algorithm
-    // let mut tiers = BTreeMap::new();
-    // tiers.insert(0, [1.0, 1.0]); // midnight blue
-    // tiers.insert(200, [0.1585, 0.0884]); // midnight blue
-    // tiers.insert(600, [1.0, 0.0]); // redish
-
-    // let tiered = TieredThreshold {
-    //     base_color: [0.3174, 0.3207],
-    //     tiers: tiers,
-    //     measurement_seconds: 0.7,
-    //     transition_milliseconds: 1,
-    // };
-
-    // let variety = VarietyThreshold {
-    //     below: [1.0, 1.0],
-    //     above: [1.0, 0.0],
-    //     variety_threshold: 5,
-    //     measurement_seconds: 0.7,
-    //     transition_milliseconds: 1,
-    // };
-
-    // let blink = Blink { duration: 1 };
+    let mut tiers = BTreeMap::new();
+    tiers.insert(0, [1.0, 1.0]); // midnight blue
+    tiers.insert(200, [0.1585, 0.0884]); // midnight blue
+    tiers.insert(600, [1.0, 0.0]); // redish
 
     match matches.value_of("METHOD") {
-        Some("dd") => run(bridge),
-        // Some("blink") => run(bridge, blink),
-        // Some("variety") => run(bridge, variety),
+        Some("blink") => run(blink(1, Some(vec![49, 36])), bridge),
+        Some("hpm") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
+        Some("variety") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
         // Some("debug") => run(bridge, DummyPrint),
-        // Some("hpm") => run(bridge, tiered),
         // Some("blinkmap") => {
         //     if let Some(pad) = matches.value_of("PAD") {
         //         let n: u8 = pad.parse::<u8>().unwrap();
@@ -79,17 +61,23 @@ fn main() {
     }
 }
 
+/// Simply creates a `clap` app with certain parsing capabilities and which is the main entry
+/// point for the tool.
 pub fn create_app() -> clap::App<'static, 'static> {
     let app = clap_app!(drue =>
                             (version: "0.1")
                             (author: "Art Eidukas <iwiivi@gmail.com>")
                             (about: "This app allows drum input to fire hue light commands.")
-                            (@arg METHOD: -m --method +takes_value "Set which method to activate (blink|blinkmap|variety|hpm|debug)")
-                            (@arg PAD: -p --pad +takes_value "Set which pad gets mapped to spetialised blinking. Only works with `blinkmap`")
+                            (@arg METHOD: -m --method +takes_value "Set which method to activate (blink|variety|hpm|debug)")
+                            (@arg PAD: -p --pad +takes_value "Set which pad gets mapped to specialised blinking. Only works with `blink`")
     );
+
+    // TODO: make sure this is consistent with the way the API is designed
     app
 }
 
+/// This function just wraps the flow of acquiring a midi input stream.
+/// It is based on the examples in the `midir` crate.
 pub fn acquire_midi_input() -> Result<(usize, MidiInput), Box<dyn Error>> {
     let mut input = String::new();
     let mut midi_in = MidiInput::new("midir reading input")?;

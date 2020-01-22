@@ -1,11 +1,14 @@
 use crate::acquire_midi_input;
 use crate::algorithms;
 use crate::state::State;
+use huemanity::Bridge;
 
 /// The run function. This sends the callback to be executed on the bridge.
-pub fn run(bridge: huemanity::Bridge) {
+pub fn run(
+    callback: impl Fn(u64, &[u8], &mut State, &Bridge) -> () + std::marker::Send + 'static,
+    bridge: Bridge,
+) {
     let (in_port, midi_in) = acquire_midi_input().unwrap();
-    let callback = algorithms::blink(1, Some(vec![49]));
 
     // create a state
     let mut state = State {
