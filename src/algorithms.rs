@@ -4,14 +4,21 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::thread::sleep;
 use std::time::Duration;
+// TODO: look into adding a parameters option and a string/enum mapper to closure using this https://users.rust-lang.org/t/default-and-optional-parameter/27693/4
 
-pub fn build_spec_blink(
+/// Constructs the blink callback. If you pass a midi note vector it will only trigger when these are
+/// activated. Otherwise pass in `None` and it will trigger regardless of what pad is hit.
+pub fn blink(
     duration: u8,
-    midi_notes: Vec<u8>,
-) -> impl Fn(u64, &[u8], &mut State, &Bridge) {
+    midi_notes: Option<Vec<u8>>,
+) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |_stamp: u64, message: &[u8], _state: &mut State, bridge: &Bridge| {
         if message.len() == 3 {
-            let hit: bool = (message.get(2) != Some(&0)) & midi_notes.contains(&message[1]);
+            let hit: bool = (message.get(2) != Some(&0))
+                & match &midi_notes {
+                    Some(vec) => vec.contains(&message[1]),
+                    None => true,
+                }; // NOTE: Not sure if this way adds overhead.
             if hit {
                 bridge.state_all(&json!({
                     "on":false,
@@ -27,18 +34,9 @@ pub fn build_spec_blink(
     }
 }
 
-pub fn build_blink(duration: u8) -> impl Fn(u64, &[u8], &mut State, &Bridge) {
-    move |_stamp: u64, message: &[u8], _state: &mut State, bridge: &Bridge| {
-        let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
-        if hit {
-            bridge.state_all(&json!({"on":false, "bri":254, "transitiontime":duration}));
-            sleep(Duration::from_millis(10));
-            bridge.state_all(&json!({"on":true, "bri":254, "transitiontime":duration}));
-        }
-    }
-}
-
-pub fn build_debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) {
+/// Constructs the debug callback which is just a way to print out information
+/// about every hit.
+pub fn debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |_stamp: u64, message: &[u8], _state: &mut State, bridge: &Bridge| {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
         if hit {
@@ -51,7 +49,8 @@ pub fn build_debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) {
     }
 }
 
-pub fn build_threshold(
+/// Constructs the HPM threshold callback to be called at each hit.
+pub fn hpm_threshold(
     base_color: [f32; 2],
     tiers: BTreeMap<usize, [f32; 2]>,
     measurement_seconds: f32,
@@ -93,13 +92,14 @@ pub fn build_threshold(
     }
 }
 
-fn build_variety(
+/// Construct the variety threshold callback.
+pub fn variety_threshold(
     below: [f32; 2],
     above: [f32; 2],
     variety_threshold: u8,
     measurement_seconds: f32,
     transition_milliseconds: u8,
-) -> impl Fn(u64, &[u8], &mut State, &Bridge) {
+) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
