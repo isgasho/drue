@@ -1,9 +1,10 @@
-#![feature(type_alias_impl_trait)]
+#![feature(fn_traits)]
 
 #[macro_use]
 extern crate clap;
 extern crate midir;
 
+#[macro_use]
 mod algorithms;
 mod core;
 mod state;
@@ -25,6 +26,7 @@ fn main() {
     let ip = env::var("HUE_IP").unwrap();
     let key = env::var("HUE_KEY").unwrap();
     let bridge = Bridge::link(ip, key);
+
     let matches = create_app().get_matches();
 
     // // Set up the algorithm
@@ -33,10 +35,16 @@ fn main() {
     tiers.insert(200, [0.1585, 0.0884]); // midnight blue
     tiers.insert(600, [1.0, 0.0]); // redish
 
+    let alg = compose!(
+        hpm_threshold([0.3174, 0.3207], &tiers, 0.7, 1),
+        hpm_threshold([0.3174, 0.3207], &tiers, 0.7, 1),
+        debug()
+    );
+
     match matches.value_of("METHOD") {
         Some("blink") => run(blink(1, Some(vec![49, 36])), bridge),
-        Some("hpm") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
-        Some("variety") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
+        // Some("hpm") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
+        // Some("variety") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
         // Some("debug") => run(bridge, DummyPrint),
         // Some("blinkmap") => {
         //     if let Some(pad) = matches.value_of("PAD") {
