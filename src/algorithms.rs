@@ -10,11 +10,10 @@ use std::time::Duration;
 ///
 /// Constructs the blink callback. If you pass a midi note vector it will only trigger when these
 /// are activated. Otherwise pass in [None] and it will trigger regardless of what pad is hit.
-pub fn blink<'a>(
+pub fn blink(
     duration: u8,
     midi_notes: Option<Vec<u8>>,
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
+) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
         if message.len() == 3 {
             let hit: bool = (message.get(2) != Some(&0))
@@ -34,17 +33,13 @@ pub fn blink<'a>(
                     "transitiontime":duration}));
             }
         }
-
-        (stamp, message, state, bridge)
     }
 }
 
 /// # Debug
 /// Constructs the debug callback which is just a way to print out information
 /// about every hit.
-pub fn debug<'a>(
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
+pub fn debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
         if hit {
@@ -54,8 +49,6 @@ pub fn debug<'a>(
             );
             println!("------------------------------------------------------");
         };
-
-        (stamp, message, state, bridge)
     }
 }
 
@@ -78,9 +71,8 @@ pub fn hpm_threshold<'a>(
     tiers: &'a BTreeMap<usize, [f32; 2]>,
     measurement_seconds: f32,
     transition_milliseconds: u8,
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
-    move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
+) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> () + '_ {
+    move |stamp: u64, message: &'a [u8], state: &'a mut State, bridge: &'a Bridge| {
         // TODO: Abstract this into the callback trait as an associated function
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
@@ -113,8 +105,6 @@ pub fn hpm_threshold<'a>(
 
             (_, _) => (),
         };
-
-        (stamp, message, state, bridge)
     }
 }
 
@@ -128,14 +118,13 @@ pub fn hpm_threshold<'a>(
 /// (similarly to [hpm_threshold]) the measurement period and transition period for the hpm and
 /// color changes respectively.
 ///
-pub fn variety_threshold<'a>(
+pub fn variety_threshold(
     below: [f32; 2],
     above: [f32; 2],
     variety_threshold: u8,
     measurement_seconds: f32,
     transition_milliseconds: u8,
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
+) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
@@ -167,44 +156,30 @@ pub fn variety_threshold<'a>(
 
             (_, _) => (),
         };
-        (stamp, message, state, bridge)
     }
 }
 
 /// A test drum mapping constructor, mainly there to debug composition macros.
-fn test_algo<'a>(
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
+pub fn test_algo() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
-        (stamp, message, state, bridge)
-    }
-}
-
-/// Composes two functions one after another.
-///
-/// Refer, to the type signatures to see which functions are supported by this composition.
-/// But in general this intends to provide a way to compose several drum-light behaviour mappings
-///
-/// Note: This function is only really useful when you have 2 algorithms (mappings) to compose. Use
-/// [compose] when you want to compose more than 2.
-pub fn compose_fns<'a>(
-    f1: impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge),
-    f2: impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge),
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> (u64, &'a [u8], &'a mut State, &'a Bridge)
-{
-    move |a1: u64, a2: &'a [u8], a3: &'a mut State, a4: &'a Bridge| {
-        let args = f1(a1, a2, a3, a4);
-        f2(args.0, args.1, args.2, args.3)
+        let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
+        if hit {
+            println!("Hello");
+        }
     }
 }
 
 /// Macro that composes created algorithms. It uses [compose2] in a recursive way
 /// to fold the provided functions.
-///
+
 /// This is intended to be used to construct consequtively execute several mappings
 /// of drumkit pads to lights.
 #[macro_export]
-macro_rules! compose {
-    ($e:expr) => { $e };
-    ($e:expr,  $($es:expr),+) => { compose_fns($e, compose!($($es),*)) };
+macro_rules! algo {
+    ($($f:expr),*) => {
+        move | a1: u64, a2: &[u8], a3: &mut crate::state::State, a4: &Bridge| {
+            $( $f(a1, a2, a3, a4);) *
+        };
+    };
 }
+// TODO: WHY NOT JUST DO FUNCTION CREATING MACROS?

@@ -23,6 +23,7 @@ pub fn run<'a>(
 
     let cb = move |stmp: u64, msg: &[u8], st: &mut State| {
         callback(stmp, msg, st, &bridge);
+        callback(stmp, msg, st, &bridge);
     };
     let conn_in = midi_in
         .connect(in_port, "Connection from Rust", cb, state)

@@ -19,6 +19,8 @@ use std::env;
 use std::error::Error;
 use std::io::{stdin, stdout, Write};
 
+// type Color = [f32; 2];
+
 // TODO: Implement default algorithms
 fn main() {
     // Get all the preliminary set up out of the way.
@@ -29,39 +31,43 @@ fn main() {
 
     let matches = create_app().get_matches();
 
-    // // Set up the algorithm
+    // default implementation of HPM based thresholding
+    // some color tiers for hpm
     let mut tiers = BTreeMap::new();
     tiers.insert(0, [1.0, 1.0]); // midnight blue
     tiers.insert(200, [0.1585, 0.0884]); // midnight blue
     tiers.insert(600, [1.0, 0.0]); // redish
 
-    let alg = compose!(
-        hpm_threshold([0.3174, 0.3207], &tiers, 0.7, 1),
-        hpm_threshold([0.3174, 0.3207], &tiers, 0.7, 1),
-        debug()
-    );
+    // TODO: Might just go back to structs
+    // default implementation of 'All Blink Debug'
+    let default_blinkbug = algo!(debug(), blink(1, None));
+
+    // default implementation for 'Hits-Per-Minute'
+    let default_hpm = algo!(hpm_threshold([0.3174, 0.3207], &tiers, 0.7, 1));
+
+    // default implementation for 'All Lights Blink'
+    let default_blink = algo!(blink(1, None));
+
+    // default implementation of 'All Blink Debug'
+    let default_variety = algo!(variety_threshold([1.0, 1.0], [1.0, 0.0], 3, 0.7, 1));
 
     match matches.value_of("METHOD") {
-        Some("blink") => run(blink(1, Some(vec![49, 36])), bridge),
-        // Some("hpm") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
-        // Some("variety") => run(hpm_threshold([0.3174, 0.3207], tiers, 0.7, 1), bridge),
-        // Some("debug") => run(bridge, DummyPrint),
-        // Some("blinkmap") => {
-        //     if let Some(pad) = matches.value_of("PAD") {
-        //         let n: u8 = pad.parse::<u8>().unwrap();
-        //         run(
-        //             bridge,
-        //             SpecialisedBlink {
-        //                 duration: 1,
-        //                 midi_notes: vec![n],
-        //             },
-        //         )
-        //     } else {
-        //         println!(
-        //             "Mapping pad not provided. Use `-o` to provide which pad to trigger blink on."
-        //         )
-        //     }
-        // }
+        Some("hpm") => run(default_hpm, bridge),
+        Some("blink") => {
+            if let Some(pad) = matches.value_of("PAD") {
+                if let Ok(ipad) = pad.parse::<u8>() {
+                    let new_blink = blink(1, Some(vec![ipad]));
+                    run(new_blink, bridge);
+                } else {
+                    panic!("Can not parse the pads")
+                }
+            } else {
+                run(default_blink, bridge);
+            }
+        }
+        Some("variety") => run(default_variety, bridge),
+        Some("debug") => run(default_blinkbug, bridge),
+        // Some("debug") => run(default_blinkbug, bridge),
         None => {
             println!("Incorrect method passed!");
         }
