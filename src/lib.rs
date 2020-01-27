@@ -2,28 +2,11 @@ pub mod algorithms;
 pub mod core;
 pub mod state;
 
-#[macro_use]
-extern crate clap;
 extern crate midir;
 
 use midir::{Ignore, MidiInput};
 use std::error::Error;
 use std::io::{stdin, stdout, Write};
-
-/// Simply creates a `clap` app with certain parsing capabilities and which is the main entry
-/// point for the tool.
-pub fn create_app() -> clap::App<'static, 'static> {
-    let app = clap_app!(drue =>
-                            (version: "0.1")
-                            (author: "Art Eidukas <iwiivi@gmail.com>")
-                            (about: "This app allows drum input to fire hue light commands.")
-                            (@arg METHOD: -m --method +takes_value "Set which method to activate (blink|variety|hpm|debug)")
-                            (@arg PAD: -p --pad +takes_value "Set which pad gets mapped to specialised blinking. Only works with `blink`")
-    );
-
-    // TODO: make sure this is consistent with the way the API is designed
-    app
-}
 
 /// This function just wraps the flow of acquiring a midi input stream.
 /// It is based on the examples in the `midir` crate.

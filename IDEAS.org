@@ -1,19 +1,21 @@
 #+TITLE: IDEAS for future improvements
 
-* [0/8] Improvements
-** TODO for the stepwise algorithms make the reversion to the basic color slower to make it feel more impactful
+* [1/10] Improvements
+** TODO for the stepwise algorithms make the reversion to the basic color slower to make it feel more impactfull
 ** TODO implement sequence tracking. so it does something after you do the sequence
-** TODO simple hit to state send algorithm
+** KILL simple hit to state send algorithm
 ** TODO add a little drum roll when successfully connected
 ** TODO hit strength algorithm
 ** TODO add the option for the base color to be a colorloop
 ** TODO give a bpm and estimate the respones time from that
 ** TODO add a fallback pause function to an algorithm to handle failed request sends
+** TODO more configuration options
+** TODO Ability to trigger only certain lights
 
-* [0/6] Ideas that need a quick think
+* [2/6] Ideas that need a quick think
 ** TODO WHY estimate per minute?
 ** TODO account for gammut?
 ** TODO Perhaps add a way to specify which lights an algorithm affects (Option Some([u8])/None (all))
-** TODO Following from the previous point, think about composition of algorithms into an AlgoCollection (its own execute)
+** DONE Following from the previous point, think about composition of algorithms into an AlgoCollection (its own execute)
 ** TODO implement loop in run so u can feed a set of algorithms
-** TODO somehow implement cutomisable states ? State trait ?
+** KILL somehow implement cutomisable states ? State trait ?
