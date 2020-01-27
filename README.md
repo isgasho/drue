@@ -8,7 +8,7 @@ pull requests and issues posted.
 
 # What is it?
 
-This crate and executable links a midi input to the hue lights in a house. It
+This crate and executable link a midi input to the hue lights in a house. It
 is able to use one of the several implemented 'algorithms' to adjust the lights.
 It uses a simple crate I wrote called
 [huemanity](https://github.com/finnkauski/huemanity) as the interface the
