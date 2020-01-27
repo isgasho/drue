@@ -4,11 +4,12 @@ version = "0.1.0"
 authors = ["Finnkauski <iwiivi@gmail.com>"]
 edition = "2018"
 default-run = "drue"
-description=""
+description="Drums + Hue lights. What can go wrong?"
 license="AGPL-3.0-or-later"
 homepage="https://finnkauski.com"
 documentation="https://docs.rs/drue/"
 repository="https://github.com/finnkauski/drue"
+readme="README.md"
 
 [dependencies]
 midir = "*"
