@@ -14,7 +14,7 @@ It uses a simple crate I wrote called
 [huemanity](https://github.com/finnkauski/huemanity) as the interface the
 lights.
 
-Currently implemented behaviour:
+# Currently implemented behaviour:
 
 - `HPM` -> This uses a tier system and swaps colors relative to the number of
   hits you are making. Default behaviour is
