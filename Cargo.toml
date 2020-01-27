@@ -1,17 +1,17 @@
 [package]
-name = "drumosphere"
+name = "drue"
 version = "0.1.0"
 authors = ["Finnkauski <iwiivi@gmail.com>"]
 edition = "2018"
-# description="Control your hue lights as you drum some sick beats!"
-# license="AGPL-3.0-or-later"
-# homepage="https://github.com/finnkauski/drue"
-# documentation="https://github.com/finnkauski/drue"
-# repository="https://github.com/finnkauski/drue"
+default-run = "drue"
+description=""
+license="AGPL-3.0-or-later"
+homepage="https://finnkauski.com"
+documentation="https://docs.rs/drue/"
+repository="https://github.com/finnkauski/drue"
 
 [dependencies]
 midir = "*"
 clap = "*"
-huemanity = "0.1.2"
-dotenv = "*"
+huemanity = "0.1.5"
 serde_json = "*"

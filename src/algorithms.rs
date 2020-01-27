@@ -6,43 +6,57 @@ use std::thread::sleep;
 use std::time::Duration;
 // TODO: look into adding a parameters option and a string/enum mapper to closure using this https://users.rust-lang.org/t/default-and-optional-parameter/27693/4
 
-/// # Blink
+/// # Blink algorithm => blink on hit
 ///
 /// Constructs the blink callback. If you pass a midi note vector it will only trigger when these
 /// are activated. Otherwise pass in [None] and it will trigger regardless of what pad is hit.
-pub fn blink(
-    duration: u8,
-    midi_notes: Option<Vec<u8>>,
-) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
-    move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
+pub struct Blink {
+    pub duration: u8,
+    pub midi_notes: Option<Vec<u8>>,
+}
+
+impl Algorithm for Blink {
+    fn go(&self, _stamp: u64, message: &[u8], _state: &mut State, bridge: &Bridge) {
         if message.len() == 3 {
-            let hit: bool = (message.get(2) != Some(&0))
-                & match &midi_notes {
-                    Some(vec) => vec.contains(&message[1]),
-                    None => true,
-                }; // NOTE: Not sure if this way adds overhead.
+            let hit: bool = (message.get(2) != Some(&0));
+            match &self.midi_notes {
+                Some(vec) => vec.contains(&message[1]),
+                None => true,
+            }; // NOTE: Not sure if this way adds overhead.
             if hit {
                 bridge.state_all(&json!({
                     "on":false,
                     "bri":254,
-                    "transitiontime":duration}));
+                    "transitiontime":self.duration}));
                 sleep(Duration::from_millis(10));
                 bridge.state_all(&json!({
                     "on":true,
                     "bri":254,
-                    "transitiontime":duration}));
+                    "transitiontime":self.duration}));
             }
         }
     }
 }
 
-/// # Debug
+impl Default for Blink {
+    fn default() -> Self {
+        Self {
+            duration: 1,
+            midi_notes: None,
+        }
+    }
+}
+
+/// # Debug => prints debug info
 /// Constructs the debug callback which is just a way to print out information
 /// about every hit.
-pub fn debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
-    move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
+#[derive(Default)]
+pub struct Debug;
+impl Algorithm for Debug {
+    fn go(&self, _stamp: u64, message: &[u8], _state: &mut State, _bridge: &Bridge) {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
         if hit {
+            println!("------------------------------------------------------");
             println!(
                 "| drum code: {} | state code: {} | full message: {:?}|",
                 message[1], message[0], message
@@ -52,7 +66,7 @@ pub fn debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
     }
 }
 
-/// # HPM (Hits-Per-Minute)
+/// # HPM (Hits-Per-Minute) => look at HPM
 ///
 /// Constructs the HPM threshold callback to be called at each hit.
 ///
@@ -66,34 +80,36 @@ pub fn debug() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
 /// - `measurement_seconds`     this dictates how often the hpm should be reassesed
 /// - `transition_milliseconds` sets how fast the transition from one color to the other should
 /// happen
-pub fn hpm_threshold<'a>(
-    base_color: [f32; 2],
-    tiers: &'a BTreeMap<usize, [f32; 2]>,
-    measurement_seconds: f32,
-    transition_milliseconds: u8,
-) -> impl Fn(u64, &'a [u8], &'a mut State, &'a Bridge) -> () + '_ {
-    move |stamp: u64, message: &'a [u8], state: &'a mut State, bridge: &'a Bridge| {
+pub struct HPM {
+    pub base_color: [f32; 2],
+    pub tiers: BTreeMap<usize, [f32; 2]>,
+    pub measurement_seconds: f32,
+    pub transition_milliseconds: u8,
+}
+
+impl Algorithm for HPM {
+    fn go(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge) {
         // TODO: Abstract this into the callback trait as an associated function
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
         // check if enough time has passed
-        let time_passed: bool = state.time_since_last(stamp) > measurement_seconds as f64;
+        let time_passed: bool = state.time_since_last(stamp) > self.measurement_seconds as f64;
 
         match (hit, time_passed) {
             (_, true) => {
                 // main algorithm
                 // TODO: implement common computations on the state itself
-                let hpm = state.calculate_hpm(measurement_seconds);
+                let hpm = state.calculate_hpm(self.measurement_seconds);
 
-                let mut color = base_color;
-                for (threshold, _color) in tiers.iter() {
+                let mut color = self.base_color;
+                for (threshold, _color) in self.tiers.iter() {
                     if hpm >= *threshold {
                         color = *_color
                     }
                 }
 
                 bridge.state_all(
-                    &json!({"bri":254, "xy":color, "transitiontime":transition_milliseconds}),
+                    &json!({"bri":254, "xy":color, "transitiontime":self.transition_milliseconds}),
                 );
 
                 state.reset(stamp);
@@ -108,41 +124,60 @@ pub fn hpm_threshold<'a>(
     }
 }
 
-/// # Variety
+impl Default for HPM {
+    fn default() -> Self {
+        // default implementation of HPM based thresholding
+        // some color tiers for hpm
+        let mut default_tiers = BTreeMap::new();
+        default_tiers.insert(0, [1.0, 1.0]); // midnight blue
+        default_tiers.insert(200, [0.1585, 0.0884]); // midnight blue
+        default_tiers.insert(600, [1.0, 0.0]); // redish
+
+        Self {
+            base_color: [0.3174, 0.3207],
+            tiers: default_tiers,
+            measurement_seconds: 0.7,
+            transition_milliseconds: 1,
+        }
+    }
+}
+
+/// # Variety => look the drum variety
 ///
 /// Constructs a midi mapping that tracks the variety of drum pads hit and maps the lights
 /// based on variety.
 ///
 /// The parameters to this function specify the color to be used before the threshold is hit,
 /// the color to be used once the variety goes above the threshold, the threshold itself and
-/// (similarly to [hpm_threshold]) the measurement period and transition period for the hpm and
+/// (similarly to [HPM]) the measurement period and transition period for the hpm and
 /// color changes respectively.
 ///
-pub fn variety_threshold(
-    below: [f32; 2],
-    above: [f32; 2],
-    variety_threshold: u8,
-    measurement_seconds: f32,
-    transition_milliseconds: u8,
-) -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
-    move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
+pub struct Variety {
+    pub below: [f32; 2],
+    pub above: [f32; 2],
+    pub variety_threshold: u8,
+    pub measurement_seconds: f32,
+    pub transition_milliseconds: u8,
+}
+impl Algorithm for Variety {
+    fn go(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge) {
         let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
 
         // check if enough time has passed
-        let time_passed: bool = state.time_since_last(stamp) > measurement_seconds as f64;
+        let time_passed: bool = state.time_since_last(stamp) > self.measurement_seconds as f64;
 
         match (hit, time_passed) {
             (_, true) => {
                 // main algorithm
                 let variety = state.hit_tracker.len();
-                let thresh_reached = variety >= variety_threshold as usize;
+                let thresh_reached = variety >= self.variety_threshold as usize;
                 if thresh_reached {
                     bridge.state_all(
-                        &json!({"bri":254, "xy":above, "transitiontime":transition_milliseconds}),
+                        &json!({"bri":254, "xy":self.above, "transitiontime":self.transition_milliseconds}),
                     );
                 } else {
                     bridge.state_all(
-                        &json!({"bri":254, "xy":below, "transitiontime":transition_milliseconds}),
+                        &json!({"bri":254, "xy":self.below, "transitiontime":self.transition_milliseconds}),
                     );
                 };
                 state.reset(stamp);
@@ -159,27 +194,20 @@ pub fn variety_threshold(
     }
 }
 
-/// A test drum mapping constructor, mainly there to debug composition macros.
-pub fn test_algo() -> impl Fn(u64, &[u8], &mut State, &Bridge) -> () {
-    move |stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge| {
-        let hit: bool = (message.len() == 3) & (message.get(2) != Some(&0));
-        if hit {
-            println!("Hello");
+impl Default for Variety {
+    fn default() -> Self {
+        Self {
+            below: [1.0, 1.0],
+            above: [1.0, 0.0],
+            variety_threshold: 3,
+            measurement_seconds: 0.7,
+            transition_milliseconds: 1,
         }
     }
 }
 
-/// Macro that composes created algorithms. It uses [compose2] in a recursive way
-/// to fold the provided functions.
-
-/// This is intended to be used to construct consequtively execute several mappings
-/// of drumkit pads to lights.
-#[macro_export]
-macro_rules! algo {
-    ($($f:expr),*) => {
-        move | a1: u64, a2: &[u8], a3: &mut crate::state::State, a4: &Bridge| {
-            $( $f(a1, a2, a3, a4);) *
-        };
-    };
+/// The algorithm trait. It is essential that any new struct that wants to
+/// be used as a custom algorithm implements this.
+pub trait Algorithm: std::marker::Send + std::marker::Sync + 'static {
+    fn go(&self, stamp: u64, message: &[u8], state: &mut State, bridge: &Bridge) {}
 }
-// TODO: WHY NOT JUST DO FUNCTION CREATING MACROS?
