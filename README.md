@@ -1,4 +1,4 @@
-<img src="meta/logo.png">
+<img src="meta/logo.png" style="text-align: center">
 
 ## Hey, heads up!
 
