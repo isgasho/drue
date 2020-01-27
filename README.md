@@ -71,6 +71,8 @@ For more see the [IDEAS](IDEAS.org) file.
 
 - No tests or CI
 
+and so on...
+
 ## How to run
 
 Ok, if you're still interested and want to run this yourself then read on.
