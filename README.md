@@ -8,6 +8,8 @@ pull requests and issues posted.
 
 # What is it?
 
+[Demo](https://www.youtube.com/watch?v=fEK2DofSwEE)
+
 This crate and executable link a midi input to the hue lights in a house. It
 is able to use one of the several implemented 'algorithms' to adjust the lights.
 It uses a simple crate I wrote called
