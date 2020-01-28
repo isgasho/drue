@@ -14,5 +14,5 @@ readme="README.md"
 [dependencies]
 midir = "*"
 clap = "*"
-huemanity = "0.1.5"
+huemanity = { git = "https://github.com/finnkauski/huemanity" }
 serde_json = "*"
