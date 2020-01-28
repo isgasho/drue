@@ -33,20 +33,21 @@ ________________________________________________________________________________
         Some("blink") => {
             if let Some(pad) = matches.value_of("PAD") {
                 if let Ok(ipad) = pad.parse::<u8>() {
-                    let new_blinkbug = Blink {
+                    let new_blink = Blink {
                         duration: 1,
                         midi_notes: Some(vec![ipad]),
                     };
-                    go!(bridge, [new_blinkbug, Debug]);
+                    go!(bridge, new_blink);
                 } else {
                     panic!("Can not parse the pads")
                 }
             } else {
-                go!(bridge, [Blink::default(), Debug]);
+                go!(bridge, Blink::default());
             }
         }
         Some("hpm") => go!(bridge, HPM::default()),
         Some("variety") => go!(bridge, Variety::default()),
+        Some("debug") => go!(bridge, [Blink::default(), Debug]),
         None => {
             println!("Incorrect method passed!");
         }

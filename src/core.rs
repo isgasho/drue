@@ -51,8 +51,10 @@ pub fn run(algo: Vec<Box<dyn Algorithm>>, bridge: Bridge) {
     };
 
     let cb = move |stmp: u64, msg: &[u8], st: &mut State| {
-        for alg in algo.iter() {
-            alg.go(stmp, msg, st, &bridge);
+        if msg[0] != 169 {
+            for alg in algo.iter() {
+                alg.go(stmp, msg, st, &bridge);
+            }
         }
     };
 

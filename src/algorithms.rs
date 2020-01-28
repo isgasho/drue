@@ -136,7 +136,7 @@ impl Default for HPM {
         Self {
             base_color: [0.3174, 0.3207],
             tiers: default_tiers,
-            measurement_seconds: 0.7,
+            measurement_seconds: 1,
             transition_milliseconds: 1,
         }
     }

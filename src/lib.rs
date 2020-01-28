@@ -1,6 +1,7 @@
 pub mod algorithms;
 pub mod core;
 pub mod state;
+pub mod utils;
 
 extern crate midir;
 
